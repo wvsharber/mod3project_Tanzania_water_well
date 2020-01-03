@@ -163,7 +163,7 @@ def create_voting_classifier(X_train, X_test, y_train, y_test, RFC_num = 200, LR
                          normalize='pred', cmap='Blues')
     plt.title(f'Soft Voting Classifier Confusion Matrix \n Accuracy: {score.round(2)}')
     plt.tight_layout()
-    plt.savefig('Voting_classifier_confusion_matrix.png', dpi = 300, transparent = True, )
+    plt.savefig('./reports/Voting_classifier_confusion_matrix.png', dpi = 300, transparent = True)
     return eclf_soft, score
 
 def create_graph(df_target, df_values):
