@@ -12,6 +12,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 def drop_useless_cols(df, drop_values = []):
+    """
+    Drops columns from df that are specificied in drop_values. Won't drop values from continuous data columns, but will raise an error if you try. Returns DataFrame with columns dropped.
+    """
+    
     continuous_columns = ['amount_tsh', 'date_recorded', 'gps_height', 'population', 'construction_year']
     for cont in continuous_columns:
         if cont in drop_values:
@@ -26,7 +30,7 @@ def drop_useless_cols(df, drop_values = []):
     
 def load_data(string1, string2):
     """
-        pass in two strings containg csv info, this function will load the two dataframes and merge them along the column 'id'
+        Pass in two strings containg .csv file paths. This function will load the two dataframes and merge them along the column 'id'. Returns merged DataFrame.
     """
     df_1 = pd.read_csv(string1)
     df_2 = pd.read_csv(string2)
@@ -36,9 +40,8 @@ def load_data(string1, string2):
 
     
 def fix_dates(df):
-    """ will take the date of 01/01/2020 and subtract it from the 'date_recorded' column.
-        This information will be stored in column called 'days_since_recording'
-        This will also drop the 'date_recorded' column
+    """ 
+    Takes the date of 01/01/2020 and subtracts it from the 'date_recorded' column. This information will be stored in column called 'days_since_recording' and drops the 'date_recorded' column from the DataFrame. Returns DataFrame.
     """
     basedate = datetime(2020, 1, 1)
     df['days_since_recording'] = df.loc[:,'date_recorded'].map(lambda x: (basedate - datetime.strptime(x, "%Y-%m-%d")).days)
@@ -46,6 +49,10 @@ def fix_dates(df):
     return df
 
 def clean_data(df, threshold = 100):
+    """
+    Replaces all NaN values in DataFrame with 'Not Known'. For categorical columns, replaces all values with a count less than 100 (threshold value) with 'other'. Returns edited DataFrame.
+    """
+    
     # replaces NaN with a string 'not known'
     df = df.fillna('Not Known')
     
@@ -69,8 +76,7 @@ def clean_data(df, threshold = 100):
 
 def bin_me(df):
     """
-        creates bins for construction_year based on 5 year increments
-        inaddition, values stored as year 0 will be transformed to not_available
+    Creates bins for construction_year based on 5 year increments. In addition, values stored as year 0 will be transformed to 'not_available'. Returns edited DataFrame.
     """
     try:
         basedate = datetime(2020, 1, 1)
@@ -88,6 +94,9 @@ def bin_me(df):
             print('you messed up')
 
 def onehotmess(df):
+    """
+    Uses pd.getdummies() to one hot encode categorical variables in DataFrame. Returns edited DataFrame and target DataFrame.
+    """
     df_objects = df.select_dtypes(exclude=['int','float']).drop(['status_group'], axis = 1)
     df_nums = df.select_dtypes(include=['int','float'])
 
@@ -98,6 +107,9 @@ def onehotmess(df):
     return df_final, df.status_group
 
 def normalize_func(df_values, df_target):
+    """
+    Takes DataFrame of training data and target values, performs a train-test split, and then scales the data using MinMaxScaler. Returns train and test sets.
+    """
     X_train, X_test, y_train, y_test = train_test_split(df_values, df_target, test_size = .05, random_state = 42)
     scaler = MinMaxScaler()
     
@@ -108,7 +120,9 @@ def normalize_func(df_values, df_target):
 
 
 def do_everything(string1, string2, drop_values, thresh = 200):
-    """this funciton is magical and does everything we could ever want and more"""
+    """
+    This function wraps previously defined data cleaning and preprocessing functions and returns processed train and test data sets.
+    """
     loaded_data = load_data(string1, string2)
     df_dropped = drop_useless_cols(loaded_data, drop_values)
     fixed_date = fix_dates(df_dropped)
@@ -121,17 +135,18 @@ def do_everything(string1, string2, drop_values, thresh = 200):
 
 
 def create_voting_classifier(X_train, X_test, y_train, y_test, RFC_num = 200, LR_iter = 1000, GBC_num = 300):
-    """This function will take in the X_train, X_test, y_train, and y_test.
-        The function also allows the user to adjust the number of estimators for Random Forest and Gradient Boosted Forest using RFC_num and GBC_num respectively.
-        The number of iterations for the logistic regression can be adjusted using LR_iter
-        This function will return a fitted voting_classifier object and the score of that classifier.
+    """
+    This function will take in the X_train, X_test, y_train, and y_test.
+    The function also allows the user to adjust the number of estimators for Random Forest and Gradient Boosted Forest using RFC_num and GBC_num respectively.
+    The number of iterations for the logistic regression can be adjusted using LR_iter.
+    This function will return a fitted voting_classifier object using VotingClassifier with soft max for voting, the accuracy score of that classifier, and a plot of the confusion matrix.
     """
     RF1 = RandomForestClassifier(n_estimators = RFC_num)
     LR1 = LogisticRegression(max_iter = LR_iter)
     GBR1 = GradientBoostingClassifier(n_estimators = GBC_num)
     KNN1 = KNeighborsClassifier()
     
-    #calculated from accuracy_scores
+    #Hard-coded estimates of accuracy from previously fit models
     lr_weight, rf_weight, gbr_weight, knn_weight = .77, .80, .78, .78
     
     eclf_soft = VotingClassifier(estimators = [('lr', LR1),
@@ -152,6 +167,9 @@ def create_voting_classifier(X_train, X_test, y_train, y_test, RFC_num = 200, LR
     return eclf_soft, score
 
 def create_graph(df_target, df_values):
+    """
+    Creates a graph of the top and bottom ten most correlated values to 'functional' water wells.
+    """
 
     df_target = pd.get_dummies(df_target)
     df = pd.concat([df_target, df_values], axis = 1)
