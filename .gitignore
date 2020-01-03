@@ -1,3 +1,6 @@
+#pickle files
+*.pickle
+
 # .csv data
 *.csv
 
